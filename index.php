@@ -91,6 +91,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($insert_query) && $insert_quer
             <input type="file" name="image" accept="image/*" required>
 
             <button type="submit">Kayıt Ol</button>
+            <br>
+            <a href="login.php">Giriş yap</a>
         </form>
     </div>
 </body>
