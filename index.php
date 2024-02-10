@@ -97,3 +97,4 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($insert_query) && $insert_quer
     </div>
 </body>
 </html>
+
