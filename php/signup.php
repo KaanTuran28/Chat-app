@@ -3,10 +3,10 @@ $message = '';
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-require 'C:\xampp\htdocs\chatapp\vendor\autoload.php';
-require 'C:\xampp\htdocs\chatapp\vendor\phpmailer\phpmailer\src\Exception.php';
-require 'C:\xampp\htdocs\chatapp\vendor\phpmailer\phpmailer\src\PHPMailer.php';
-require 'C:\xampp\htdocs\chatapp\vendor\phpmailer\phpmailer\src\SMTP.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../vendor/phpmailer/phpmailer/src/Exception.php';
+require_once __DIR__ . '/../vendor/phpmailer/phpmailer/src/PHPMailer.php';
+require_once __DIR__ . '/../vendor/phpmailer/phpmailer/src/SMTP.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     include_once "php/config.php"; // config.php dosyanızın doğru yolu üzerinden include edin.
