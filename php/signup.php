@@ -1,15 +1,9 @@
 <?php
 $message = '';
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-
-require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../vendor/phpmailer/phpmailer/src/Exception.php';
-require_once __DIR__ . '/../vendor/phpmailer/phpmailer/src/PHPMailer.php';
-require_once __DIR__ . '/../vendor/phpmailer/phpmailer/src/SMTP.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    include_once "php/config.php"; // config.php dosyanızın doğru yolu üzerinden include edin.
+    // Veritabanı bağlantısı ve form verilerini alalım
+    include_once "php/config.php"; 
 
     $fname = mysqli_real_escape_string($conn, $_POST['fname']);
     $lname = mysqli_real_escape_string($conn, $_POST['lname']);
@@ -24,6 +18,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 if (mysqli_num_rows($sql) > 0) {
                     $message = "$email - This email already exists!";
                 } else {
+                    // E-posta gönderme kısmını kaldırdık, sadece veritabanı işlemi yapıyoruz
                     $verification_code = md5(uniqid(rand(), true));
 
                     if (isset($_FILES['image'])) {
@@ -41,46 +36,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             if (move_uploaded_file($tmp_name, "php/images/" . $new_img_name)) {
                                 $ran_id = rand(time(), 100000000);
                                 $status = "Inactive";
-                                $encrypt_pass = md5($password); // Güvenlik nedeniyle md5 kullanımı, daha güçlü şifreleme yöntemleri tercih edilebilir.
+                                $encrypt_pass = md5($password);
                                 $insert_query = mysqli_query($conn, "INSERT INTO users (unique_id, fname, lname, email, password, img, status, verification_code)
                                     VALUES ({$ran_id}, '{$fname}', '{$lname}', '{$email}', '{$encrypt_pass}', '{$new_img_name}', '{$status}', '{$verification_code}')");
 
                                 if ($insert_query) {
-                                    // E-posta gönderme işlemi
-                                    $mail = new PHPMailer(true);
-                                    try {
-                                        // SMTP ayarları
-                                        $mail->isSMTP();
-                                        $mail->Host       = 'smtp.gmail.com';
-                                        $mail->SMTPAuth   = true;
-                                        $mail->Username   = 'rastgel05@gmail.com';
-                                        $mail->Password   = 'wdnc gjuv cgqk nolw';
-                                        $mail->SMTPSecure = 'tls';
-                                        $mail->Port       = 587;
-                                        $mail->SMTPOptions = array(
-                                            'ssl' => array(
-                                                'verify_peer' => false,
-                                                'verify_peer_name' => false,
-                                                'allow_self_signed' => true
-                                            )
-                                        );
-
-                                        // Alıcı bilgileri
-                                        $mail->setFrom('rastgel05@gmail.com', 'On Dokuz Mayıs Üniversitesi'); // Gönderen adı ve e-posta adresi
-                                        $mail->addAddress($email, $fname); // Alıcı adı ve e-posta adresi
-
-                                        // E-posta içeriği
-                                        $mail->isHTML(true);
-                                        $mail->Subject = 'Doğrulama Kodu';
-                                        $mail->Body    = "Merhaba {$fname},<br><br>Üyeliğinizi tamamlamak için aşağıdaki doğrulama kodunu kullanın:<br><br><strong>{$verification_code}</strong>";
-
-                                        // Gönder
-                                        $mail->send();
-                                        
-                                        $message = "<div>Kaydınız başarıyla oluşturuldu. Lütfen e-postanızı kontrol edin ve hesabınızı doğrulayın.</div>";
-                                    } catch (Exception $e) {
-                                        $message = "<div>E-posta gönderme hatası: {$mail->ErrorInfo}</div>";
-                                    }
+                                    $message = "<div>Kaydınız başarıyla oluşturuldu. Hesabınızı doğrulamak için e-posta göndermek gerekli değildir.</div>";
                                 } else {
                                     $message = "<div>Something went wrong. Please try again!</div>";
                                 }

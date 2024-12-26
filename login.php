@@ -9,23 +9,23 @@
 <body>
   <div class="wrapper">
     <section class="form login">
-      <header>Realtime Chat App</header>
+      <header>Chat App</header>
       <form action="#" method="POST" enctype="multipart/form-data" autocomplete="off">
         <div class="error-text"></div>
         <div class="field input">
-          <label>Email Address</label>
-          <input type="text" name="email" placeholder="Enter your email" required>
+          <label>Email Ades</label>
+          <input type="text" name="email" placeholder="Email Ades" required>
         </div>
         <div class="field input">
-          <label>Password</label>
-          <input type="password" name="password" placeholder="Enter your password" required>
+          <label>Şifre</label>
+          <input type="password" name="password" placeholder="Şifre" required>
           <i class="fas fa-eye"></i>
         </div>
         <div class="field button">
-          <input type="submit" name="submit" value="Continue to Chat">
+          <input type="submit" name="submit" value="Sohbete Başla">
         </div>
       </form>
-      <div class="link">Not yet signed up? <a href="index.php">Signup now</a></div>
+      <div class="link">Hesabın Yokmu? <a href="index.php">Şimdi Kaydol </a></div>
     </section>
   </div>
   
