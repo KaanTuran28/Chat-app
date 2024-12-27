@@ -11,38 +11,65 @@ if (!isset($_SESSION['unique_id'])) {
 $user_id = $_SESSION['unique_id'];
 
 // Kullanıcı bilgilerini çek
-$sql = "SELECT * FROM users WHERE unique_id = '$user_id'";
-$result = $conn->query($sql);
+$sql = "SELECT * FROM users WHERE unique_id = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("s", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
 
 if ($result->num_rows > 0) {
     $row = $result->fetch_assoc();
-    $fname = $row['fname'];
-    $lname = $row['lname'];
-    $email = $row['email'];
-    $img = $row['img'];
-    $status = $row['status'];
-    $seed = $row['seed'];
-    // Diğer kullanıcı bilgilerini de çekebilirsiniz
+    $fname = htmlspecialchars($row['fname']);
+    $lname = htmlspecialchars($row['lname']);
+    $email = htmlspecialchars($row['email']);
+    $img = htmlspecialchars($row['img']);
 } else {
     echo "Kullanıcı bulunamadı!";
     exit;
 }
 
 // Profil güncelleme işlemi
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $new_fname = $_POST['fname'];
-    $new_lname = $_POST['lname'];
-    $new_email = $_POST['email'];
-    $new_img = $_POST['img'];
- 
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update'])) {
+    $new_fname = mysqli_real_escape_string($conn, $_POST['fname']);
+    $new_lname = mysqli_real_escape_string($conn, $_POST['lname']); 
+    $new_email = mysqli_real_escape_string($conn, $_POST['email']);
 
+    $img_name = $img; // Varsayılan olarak eski resim
 
-    // Güncelleme SQL sorgusu
-    $update_sql = "UPDATE users SET fname = '$new_fname', lname = '$new_lname', email = '$new_email', img = '$new_img' WHERE unique_id = '$user_id'";
-    $update_result = $conn->query($update_sql);
+    // Yeni profil fotoğrafı yüklendiyse işleme al
+    if (!empty($_FILES['img']['name'])) {
+        $img_tmp_name = $_FILES['img']['tmp_name'];
+        $img_ext = strtolower(pathinfo($_FILES['img']['name'], PATHINFO_EXTENSION));
+        $allowed_ext = ["jpeg", "jpg", "png"];
 
-    if ($update_result) {
-        echo "Profil güncellendi!";
+        if (in_array($img_ext, $allowed_ext)) {
+            $new_img_name = time() . '.' . $img_ext;
+            $upload_dir = __DIR__ . "/images/";
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0777, true);
+            }
+            if (move_uploaded_file($img_tmp_name, $upload_dir . $new_img_name)) {
+                $img_name = $new_img_name;
+            } else {
+                echo "Resim yükleme sırasında bir hata oluştu.";
+                exit;
+            }
+        } else {
+            echo "Lütfen geçerli bir resim formatı yükleyin (jpeg, jpg, png).";
+            exit;
+        }
+    }
+
+    // Veritabanını güncelle
+    $update_sql = "UPDATE users SET fname = ?, lname = ?, email = ?, img = ? WHERE unique_id = ?";
+    $stmt = $conn->prepare($update_sql);
+    $stmt->bind_param("sssss", $new_fname, $new_lname, $new_email, $img_name, $user_id);
+
+    if ($stmt->execute()) {
+        echo "Profil başarıyla güncellendi!";
+        // Yeni bilgileri yansıtmak için sayfayı yenileyin
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit();
     } else {
         echo "Güncelleme hatası: " . $conn->error;
     }
@@ -50,10 +77,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 // Profil silme işlemi
 if (isset($_POST['delete'])) {
-    $delete_sql = "DELETE FROM users WHERE unique_id = '$user_id'";
-    $delete_result = $conn->query($delete_sql);
+    $delete_sql = "DELETE FROM users WHERE unique_id = ?";
+    $stmt = $conn->prepare($delete_sql);
+    $stmt->bind_param("s", $user_id);
 
-    if ($delete_result) {
+    if ($stmt->execute()) {
         session_destroy(); // Kullanıcının oturumunu sonlandır
         header("Location: login.php");
         exit();
@@ -62,7 +90,6 @@ if (isset($_POST['delete'])) {
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -72,10 +99,9 @@ if (isset($_POST['delete'])) {
     <title>Kullanıcı Profil Ayarları</title>
 </head>
 <body>
-
 <h1>Kullanıcı Profil Ayarları</h1>
 
-<form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
+<form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" enctype="multipart/form-data">
     <label for="fname">Ad:</label>
     <input type="text" id="fname" name="fname" value="<?php echo $fname; ?>" required>
 
@@ -86,8 +112,10 @@ if (isset($_POST['delete'])) {
     <input type="email" id="email" name="email" value="<?php echo $email; ?>" required>
 
     <label for="img">Profil Fotoğrafı:</label>
-    <input type="file" id="img" name="img" value="<?php echo $img; ?>" accept="image/*" >
-    <button type="submit">Güncelle</button>
+    <input type="file" id="img" name="img" accept="image/*">
+    <img src="images/<?php echo $img; ?>" alt="Profil Fotoğrafı" style="max-width: 100px; display: block;">
+
+    <button type="submit" name="update">Güncelle</button>
 </form>
 
 <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
@@ -95,6 +123,5 @@ if (isset($_POST['delete'])) {
 </form>
 
 <a href="users.php">Çıkış</a>
-
 </body>
 </html>
