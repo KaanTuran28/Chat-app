@@ -44,7 +44,7 @@
           <input type="submit" name="submit" value="Sohbete Başla">
         </div>
       </form>
-      <div class="link">Hesabın Varmı? <a href="login.php">Şimdi Giriş Yap</a></div>
+      <div class="link">Hesabın Varmı? <a href="login.php">Giriş Yap</a></div>
     </section>
   </div>
 

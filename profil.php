@@ -10,76 +10,56 @@ if (!isset($_SESSION['unique_id'])) {
 
 $user_id = $_SESSION['unique_id'];
 
-// Kullanıcı bilgilerini çekme
-$sql = $conn->prepare("SELECT * FROM users WHERE unique_id = ?");
-$sql->bind_param("s", $user_id);
-$sql->execute();
-$result = $sql->get_result();
+// Kullanıcı bilgilerini çek
+$sql = "SELECT * FROM users WHERE unique_id = '$user_id'";
+$result = $conn->query($sql);
 
 if ($result->num_rows > 0) {
     $row = $result->fetch_assoc();
-    $fname = htmlspecialchars($row['fname']);
-    $lname = htmlspecialchars($row['lname']);
-    $email = htmlspecialchars($row['email']);
-    $img = htmlspecialchars($row['img']);
-    $status = htmlspecialchars($row['status']);
+    $fname = $row['fname'];
+    $lname = $row['lname'];
+    $email = $row['email'];
+    $img = $row['img'];
+    $status = $row['status'];
+    $seed = $row['seed'];
+    // Diğer kullanıcı bilgilerini de çekebilirsiniz
 } else {
-    echo json_encode(["status" => "error", "message" => "Kullanıcı bulunamadı!"]);
+    echo "Kullanıcı bulunamadı!";
     exit;
 }
 
-// AJAX ile gelen istekleri işleme
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] === 'update_profile') {
-    $new_fname = htmlspecialchars(trim($_POST['fname']));
-    $new_lname = htmlspecialchars(trim($_POST['lname']));
-    $new_email = filter_var(trim($_POST['email']), FILTER_VALIDATE_EMAIL);
+// Profil güncelleme işlemi
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $new_fname = $_POST['fname'];
+    $new_lname = $_POST['lname'];
+    $new_email = $_POST['email'];
+    $new_img = $_POST['img'];
+ 
 
-    if ($new_email === false) {
-        echo json_encode(["status" => "error", "message" => "Geçersiz e-posta adresi!"]);
-        exit();
-    }
 
-    // Profil fotoğrafı yükleme işlemi
-    $new_img = $img; // Varsayılan resim
-    if (isset($_FILES['img']) && $_FILES['img']['error'] === 0) {
-        $img_name = $_FILES['img']['name'];
-        $img_tmp_name = $_FILES['img']['tmp_name'];
-        $img_ext = strtolower(pathinfo($img_name, PATHINFO_EXTENSION));
-        $allowed_extensions = ["jpeg", "jpg", "png"];
-        $max_size = 2 * 1024 * 1024; // 2MB
+    // Güncelleme SQL sorgusu
+    $update_sql = "UPDATE users SET fname = '$new_fname', lname = '$new_lname', email = '$new_email', img = '$new_img' WHERE unique_id = '$user_id'";
+    $update_result = $conn->query($update_sql);
 
-        if (!in_array($img_ext, $allowed_extensions) || $_FILES['img']['size'] > $max_size) {
-            echo json_encode(["status" => "error", "message" => "Geçersiz dosya formatı veya boyutu!"]);
-            exit();
-        }
-
-        $new_img = "profile_" . uniqid() . "." . $img_ext; // Benzersiz isim
-        $upload_dir = "php/images/";
-        if (!move_uploaded_file($img_tmp_name, $upload_dir . $new_img)) {
-            echo json_encode(["status" => "error", "message" => "Fotoğraf yüklenemedi."]);
-            exit();
-        }
-    }
-
-    // Veritabanında güncelleme
-    $update_sql = $conn->prepare("UPDATE users SET fname = ?, lname = ?, email = ?, img = ? WHERE unique_id = ?");
-    $update_sql->bind_param("sssss", $new_fname, $new_lname, $new_email, $new_img, $user_id);
-    
-    if ($update_sql->execute()) {
-        echo json_encode([
-            "status" => "success",
-            "message" => "Profil başarıyla güncellendi!",
-            "data" => [
-                "fname" => $new_fname,
-                "lname" => $new_lname,
-                "email" => $new_email,
-                "img" => $new_img
-            ]
-        ]);
+    if ($update_result) {
+        echo "Profil güncellendi!";
     } else {
-        echo json_encode(["status" => "error", "message" => "Güncelleme hatası: " . $conn->error]);
+        echo "Güncelleme hatası: " . $conn->error;
     }
-    exit();
+}
+
+// Profil silme işlemi
+if (isset($_POST['delete'])) {
+    $delete_sql = "DELETE FROM users WHERE unique_id = '$user_id'";
+    $delete_result = $conn->query($delete_sql);
+
+    if ($delete_result) {
+        session_destroy(); // Kullanıcının oturumunu sonlandır
+        header("Location: login.php");
+        exit();
+    } else {
+        echo "Silme hatası: " . $conn->error;
+    }
 }
 ?>
 
@@ -95,7 +75,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
 
 <h1>Kullanıcı Profil Ayarları</h1>
 
-<form id="profileForm" enctype="multipart/form-data">
+<form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
     <label for="fname">Ad:</label>
     <input type="text" id="fname" name="fname" value="<?php echo $fname; ?>" required>
 
@@ -106,40 +86,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
     <input type="email" id="email" name="email" value="<?php echo $email; ?>" required>
 
     <label for="img">Profil Fotoğrafı:</label>
-    <input type="file" id="img" name="img" accept="image/*">
-
+    <input type="file" id="img" name="img" value="<?php echo $img; ?>" accept="image/*" >
     <button type="submit">Güncelle</button>
 </form>
 
-<div id="message"></div>
+<form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
+    <button type="submit" name="delete" onclick="return confirm('Profilinizi silmek istediğinize emin misiniz?')">Profil Sil</button>
+</form>
 
-<a href="chat.php">Geri Dön</a>
-
-<script>
-document.getElementById('profileForm').addEventListener('submit', function(e) {
-    e.preventDefault(); 
-    const formData = new FormData(this);
-    formData.append('action', 'update_profile');
-
-    fetch('profil.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        const messageDiv = document.getElementById('message');
-        messageDiv.textContent = data.message;
-        if (data.status === 'success') {
-            // Profil detaylarını güncelle
-            document.getElementById('fname').value = data.data.fname;
-            document.getElementById('lname').value = data.data.lname;
-            document.getElementById('email').value = data.data.email;
-        }
-    })
-    .catch(error => console.error('Hata:', error));
-});
-</script>
+<a href="users.php">Çıkış</a>
 
 </body>
 </html>
-

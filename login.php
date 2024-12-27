@@ -25,7 +25,7 @@
           <input type="submit" name="submit" value="Sohbete Başla">
         </div>
       </form>
-      <div class="link">Hesabın Yokmu? <a href="index.php">Şimdi Kaydol </a></div>
+      <div class="link">Hesabın Yokmu? <a href="index.php">Kaydol </a></div>
     </section>
   </div>
   
